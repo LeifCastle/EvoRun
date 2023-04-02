@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="index.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>EvoRun</title>
-</head>
-<body>
-    <h1>EvoRun</h1>
-    <canvas width="75vw" height="60vh" id="gameScreen">
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div id="container">
+      <h1>Evo Wars</h1>
+      <main>
+        <canvas id="game"><!-- play it, a game --></canvas>
+      </main>
+      <button id="playButton">Play</button>
+    </div>
+    <div id="imageContainer">
+      <img
+        src="./Images/basicPath.png"
+        alt="path"
+        id="path"
+        style="display: none"
+      />
+    </div>
     <script src="index.js"></script>
-</body>
+  </body>
 </html>
