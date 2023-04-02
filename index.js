@@ -11,9 +11,16 @@ let path;
 let nextPath;
 let player;
 let lane = -1;
-let progress = 0; //This variable keeps track of how many pixels the player has progressed through the game
-const cardEventFrequency = 20; //How many pixels the player must progress to get to the next card event
-let newEvent;
+const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+let cardProgress = 0; //This variable keeps track of how many pixels the player has progressed through the game
+const cardEventFrequency = 400; //How many pixels the player must progress to get to the next card event
+const initialCardStart = 200;
+let card1;
+let card2;
+let card3;
+let nextCard1;
+let nextCard2;
+let nextCard3;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -52,13 +59,24 @@ class Player {
 }
 
 class Event {
-  constructor(event) {
+  constructor(event, x, y) {
     this.event = event;
+    this.cardWidth = 150;
+    this.cardHeight = 75;
+    this.x = x;
+    this.y = y;
+    this.show = true;
   }
   render() {
     if ((this.event = "card")) {
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(10, 10, 10, 10);
+      ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight); //Card 1
+    }
+  }
+
+  move() {
+    if (this.event === "card" && this.show === true) {
+      this.x -= speed;
     }
   }
 }
@@ -69,6 +87,9 @@ function initializeGame() {
   path = new Path(pathImage, 0, 0);
   nextPath = new Path(pathImage, path.x + path.width, 0);
   player = new Player(playerImage, 50, 60);
+  card1 = new Event("card", initialCardStart, 50);
+  card2 = new Event("card", initialCardStart + 200, 185);
+  card3 = new Event("card", initialCardStart + 100, 330);
 
   //Run gameLoop at set interval
   const runGame = setInterval(gameLoop, 60);
@@ -76,17 +97,28 @@ function initializeGame() {
 
 //====== Game Functions ======\\
 function gameLoop() {
+  //Path
   pathMovement();
   path.render();
   nextPath.render();
+
+  //Events
+  eventMovement();
+  card1.render();
+  card2.render();
+  card3.render();
+  if (nextCard1) {
+    //If next cards are out move and render them
+    nextCard1.move();
+    nextCard1.render();
+    nextCard2.move();
+    nextCard2.render();
+    nextCard3.move();
+    nextCard3.render();
+  }
+
+  //Characters
   player.render();
-  const event = eventCheck();
-  if (event != false) {
-    newEvent = new Event(event);
-  }
-  if (newEvent) {
-    newEvent.render();
-  }
 }
 
 function playerMovement(e) {
@@ -110,10 +142,7 @@ function playerMovement(e) {
 }
 
 function pathMovement() {
-  const speed = 1; //***ToDO:  set this to a linear or polynomial increment over game progress/time
-  progress += speed;
-  console.log("progress: ", progress);
-  path.x -= speed;
+  path.x -= speed; //Move Path
   // If the first path is fully to the left of the canvas, reassign it to the next path
   if (path.x + path.width < 0) {
     path = nextPath;
@@ -127,10 +156,23 @@ function pathMovement() {
   }
 }
 
-function eventCheck() {
-  if (progress === cardEventFrequency) {
-    return "card";
-  } else {
-    return false;
+function eventMovement() {
+  cardProgress += speed;
+  card1.move();
+  card2.move();
+  card3.move();
+  if (cardProgress === cardEventFrequency) {
+    //Card progress is relevant to how many pixels the game as advanced
+    if (nextCard1) {
+      //Prevents from running the very first time when nextCards don't exist yet
+      card1 = nextCard1;
+      card2 = nextCard2;
+      card3 = nextCard3;
+    }
+    //***ToDo: Set these to be random distance apart from eachother
+    nextCard1 = new Event("card", game.width, 50);
+    nextCard2 = new Event("card", game.width + 200, 185);
+    nextCard3 = new Event("card", game.width + 100, 330);
+    cardProgress = -game.width + initialCardStart; //Not sure this correct, but it renders even spacing
   }
 }
