@@ -11,6 +11,9 @@ let path;
 let nextPath;
 let player;
 let lane = -1;
+let progress = 0; //This variable keeps track of how many pixels the player has progressed through the game
+const cardEventFrequency = 20; //How many pixels the player must progress to get to the next card event
+let newEvent;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -48,6 +51,18 @@ class Player {
   }
 }
 
+class Event {
+  constructor(event) {
+    this.event = event;
+  }
+  render() {
+    if ((this.event = "card")) {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(10, 10, 10, 10);
+    }
+  }
+}
+
 //====== Initialize Game ======\\
 function initializeGame() {
   //Initialize entities to render
@@ -65,6 +80,13 @@ function gameLoop() {
   path.render();
   nextPath.render();
   player.render();
+  const event = eventCheck();
+  if (event != false) {
+    newEvent = new Event(event);
+  }
+  if (newEvent) {
+    newEvent.render();
+  }
 }
 
 function playerMovement(e) {
@@ -88,7 +110,9 @@ function playerMovement(e) {
 }
 
 function pathMovement() {
-  const speed = 4; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+  const speed = 1; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+  progress += speed;
+  console.log("progress: ", progress);
   path.x -= speed;
   // If the first path is fully to the left of the canvas, reassign it to the next path
   if (path.x + path.width < 0) {
@@ -100,5 +124,13 @@ function pathMovement() {
   } else {
     //the else statement removes a noticeable jerk from creating a new path and immediately moving it
     nextPath.x -= speed;
+  }
+}
+
+function eventCheck() {
+  if (progress === cardEventFrequency) {
+    return "card";
+  } else {
+    return false;
   }
 }
