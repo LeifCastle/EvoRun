@@ -1,3 +1,7 @@
+//====== General ToDo ======\\
+//make array of each class instance of cardEvents and run a forEach loop in game Loop for each function that deals with them
+//make barrier so player can't select multiple cards
+
 //====== Global DOM Variables ======\\
 const game = document.querySelector("#game");
 const playButton = document.querySelector("#playButton");
@@ -21,6 +25,7 @@ let card3;
 let nextCard1;
 let nextCard2;
 let nextCard3;
+const selectionRealistic = 15;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -52,6 +57,8 @@ class Player {
     this.image = image;
     this.x = x;
     this.y = y;
+    this.width = image.width;
+    this.height = image.height;
   }
   render() {
     ctx.drawImage(this.image, this.x, this.y);
@@ -68,14 +75,14 @@ class Event {
     this.show = true;
   }
   render() {
-    if ((this.event = "card")) {
+    if ((this.event = "card") && this.show === true) {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight); //Card 1
     }
   }
 
   move() {
-    if (this.event === "card" && this.show === true) {
+    if (this.event === "card") {
       this.x -= speed;
     }
   }
@@ -103,6 +110,7 @@ function gameLoop() {
   nextPath.render();
 
   //Events
+  checkEventSelection();
   eventMovement();
   card1.render();
   card2.render();
@@ -175,4 +183,21 @@ function eventMovement() {
     nextCard3 = new Event("card", game.width + 100, 330);
     cardProgress = -game.width + initialCardStart; //Not sure this correct, but it renders even spacing
   }
+}
+
+function checkEventSelection() {
+  eventArray = [card1, card2, card3, nextCard1, nextCard2, nextCard3];
+  eventArray.forEach((event) => {
+    if (event) {
+      yMatch =
+        player.y > event.y &&
+        player.y + player.height < event.y + event.cardHeight;
+      if (
+        player.x + player.width - selectionRealistic > event.x &&
+        yMatch === true
+      ) {
+        event.show = false;
+      }
+    }
+  });
 }
