@@ -7,6 +7,9 @@ const pathImage = document.querySelector("#path");
 const playerImage = document.querySelector("#player");
 
 //====== Global Variables ======\\
+let path;
+let player;
+let lane = -1;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -16,6 +19,7 @@ game.setAttribute("width", 900); //Set to getComputedStyle(game)["width"] after 
 //====== Event Listeners ======\\
 window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
+  document.addEventListener("keydown", (e) => playerMovement(e));
 });
 
 //====== Renderable Classes ======\\
@@ -44,10 +48,35 @@ class Player {
 //====== Initialize Game ======\\
 function initializeGame() {
   //Initialize entities to render
-  const path = new Path(pathImage, 0);
-  const player = new Player(playerImage, 20, 60);
+  path = new Path(pathImage, 0);
+  player = new Player(playerImage, 20, 60);
 
-  //Render entities
+  //Run gameLoop
+  const runGame = setInterval(gameLoop, 60);
+}
+
+//====== Game Functions ======\\
+function gameLoop() {
   path.render();
   player.render();
+}
+
+function playerMovement(e) {
+  if (e.key === "w" && lane > -1) {
+    lane--;
+  }
+  if (e.key === "s" && lane < 1) {
+    lane++;
+  }
+  switch (lane) {
+    case -1:
+      player.y = 60;
+      break;
+    case 0:
+      player.y = 200;
+      break;
+    case 1:
+      player.y = 340;
+      break;
+  }
 }
