@@ -9,23 +9,29 @@ const playButton = document.querySelector("#playButton");
 //Images
 const pathImage = document.querySelector("#path");
 const playerImage = document.querySelector("#player");
+const barrierImage = document.querySelector("#cardBarrier");
 
 //====== Global Variables ======\\
+//Class Instances
 let path;
 let nextPath;
+let barrier1;
+let barrier2;
 let player;
-let lane = -1;
-const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
-let cardProgress = 0; //This variable keeps track of how many pixels the player has progressed through the game
-const cardEventFrequency = 400; //How many pixels the player must progress to get to the next card event
-const initialCardStart = 200;
 let card1;
 let card2;
 let card3;
 let nextCard1;
 let nextCard2;
 let nextCard3;
-const selectionRealistic = 15;
+
+//Other
+let lane = -1; //The player initially starts in the upper lane
+const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+const cardEventFrequency = -game.width + 100; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
+const initialCardStart = 200; //How many pixels to the right of the game screen's x-axis the cards initially start
+const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
+let blocked = false; //If the player is currently blocked by a card barrier
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -66,7 +72,7 @@ class Player {
 }
 
 class Event {
-  constructor(event, x, y) {
+  constructor(event, x, y, image) {
     this.event = event;
     this.cardWidth = 150;
     this.cardHeight = 75;
@@ -80,11 +86,26 @@ class Event {
       ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight); //Card 1
     }
   }
-
   move() {
     if (this.event === "card") {
       this.x -= speed;
     }
+  }
+}
+
+class Barrier {
+  constructor(image, x, y) {
+    this.image = image;
+    this.x = x;
+    this.y = y;
+    this.width = 210;
+  }
+  render() {
+    ctx.drawImage(this.image, this.x - 30, this.y);
+    ctx.drawImage(this.image, this.x - 30, this.y);
+  }
+  move() {
+    this.x -= speed;
   }
 }
 
@@ -93,21 +114,28 @@ function initializeGame() {
   //Initialize entities to render
   path = new Path(pathImage, 0, 0);
   nextPath = new Path(pathImage, path.x + path.width, 0);
+  barrier1 = new Barrier(barrierImage, initialCardStart, 138);
+  barrier2 = new Barrier(barrierImage, initialCardStart, 270);
   player = new Player(playerImage, 50, 60);
   card1 = new Event("card", initialCardStart, 50);
-  card2 = new Event("card", initialCardStart + 200, 185);
-  card3 = new Event("card", initialCardStart + 100, 330);
+  card2 = new Event("card", initialCardStart, 185); //CardBarrier
+  card3 = new Event("card", initialCardStart, 330);
 
   //Run gameLoop at set interval
   const runGame = setInterval(gameLoop, 60);
 }
 
 //====== Game Functions ======\\
+//GameLoop
 function gameLoop() {
-  //Path
+  //Game Style
   pathMovement();
   path.render();
   nextPath.render();
+  barrierMovement();
+  barrier1.render();
+  barrier2.render();
+  blocked = checkBarrier();
 
   //Events
   checkEventSelection();
@@ -115,36 +143,29 @@ function gameLoop() {
   card1.render();
   card2.render();
   card3.render();
-  if (nextCard1) {
-    //If next cards are out move and render them
-    nextCard1.move();
-    nextCard1.render();
-    nextCard2.move();
-    nextCard2.render();
-    nextCard3.move();
-    nextCard3.render();
-  }
 
   //Characters
   player.render();
 }
 
+//Movement
 function playerMovement(e) {
-  if (e.key === "w" && lane > -1) {
-    lane--;
+  console.log(blocked);
+  if (e.key === "w" && lane > -1 && !blocked) {
+    lane--; //Move up
   }
-  if (e.key === "s" && lane < 1) {
-    lane++;
+  if (e.key === "s" && lane < 1 && !blocked) {
+    lane++; //Move down
   }
   switch (lane) {
     case -1:
-      player.y = 60;
+      player.y = 60; //Lane 1
       break;
     case 0:
-      player.y = 200;
+      player.y = 200; //Lane 2
       break;
     case 1:
-      player.y = 340;
+      player.y = 340; //Lane 3
       break;
   }
 }
@@ -165,26 +186,26 @@ function pathMovement() {
 }
 
 function eventMovement() {
-  cardProgress += speed;
   card1.move();
   card2.move();
   card3.move();
-  if (cardProgress === cardEventFrequency) {
-    //Card progress is relevant to how many pixels the game as advanced
-    if (nextCard1) {
-      //Prevents from running the very first time when nextCards don't exist yet
-      card1 = nextCard1;
-      card2 = nextCard2;
-      card3 = nextCard3;
-    }
-    //***ToDo: Set these to be random distance apart from eachother
-    nextCard1 = new Event("card", game.width, 50);
-    nextCard2 = new Event("card", game.width + 200, 185);
-    nextCard3 = new Event("card", game.width + 100, 330);
-    cardProgress = -game.width + initialCardStart; //Not sure this correct, but it renders even spacing
+  if (card1.x < cardEventFrequency) {
+    card1 = new Event("card", game.width, 50);
+    card2 = new Event("card", game.width, 185);
+    card3 = new Event("card", game.width, 330);
   }
 }
 
+function barrierMovement() {
+  barrier1.move();
+  barrier2.move();
+  if (barrier1.x < cardEventFrequency) {
+    barrier1 = new Barrier(barrierImage, game.width, 138);
+    barrier2 = new Barrier(barrierImage, game.width, 270);
+  }
+}
+
+//Checks
 function checkEventSelection() {
   eventArray = [card1, card2, card3, nextCard1, nextCard2, nextCard3];
   eventArray.forEach((event) => {
@@ -200,4 +221,15 @@ function checkEventSelection() {
       }
     }
   });
+}
+
+function checkBarrier() {
+  //X's don't quite align (off by about 50) but not sure why
+  if (
+    player.x > barrier1.x - 50 &&
+    player.x < barrier1.x + barrier1.width - 50
+  ) {
+    return true;
+  }
+  return false;
 }
