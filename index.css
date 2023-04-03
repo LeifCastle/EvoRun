@@ -2,3 +2,8 @@ body {
   text-align: center;
   background-color: aliceblue;
 }
+.card {
+  width: 150;
+  height: 75;
+  background-color: white;
+}

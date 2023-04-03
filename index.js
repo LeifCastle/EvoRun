@@ -32,6 +32,8 @@ const cardEventFrequency = -game.width + 100; //The number is how many pixels th
 const initialCardStart = 200; //How many pixels to the right of the game screen's x-axis the cards initially start
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
+let people = 1; //How many people the player has
+let eventAction; //The player selected event to run
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -59,37 +61,65 @@ class Path {
 }
 
 class Player {
-  constructor(image, x, y) {
+  constructor(image, x, y, number) {
     this.image = image;
     this.x = x;
     this.y = y;
     this.width = image.width;
     this.height = image.height;
+    this.number = number;
   }
   render() {
-    ctx.drawImage(this.image, this.x, this.y);
+    //Rendering based on number of people does not work yet
+    for (i = 0; i < this.number; i++) {
+      ctx.drawImage(this.image, this.x, this.y);
+      this.x + 10;
+    }
   }
 }
 
 class Event {
-  constructor(event, x, y, image) {
+  constructor(event, x, y, cardText) {
     this.event = event;
     this.cardWidth = 150;
     this.cardHeight = 75;
     this.x = x;
     this.y = y;
-    this.show = true;
+    this.show = true; //If this event is visible, (false when the player selects it)
+    this.cardText = cardText;
+    this.run = false; //If this event has already run
   }
   render() {
     if ((this.event = "card") && this.show === true) {
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight); //Card 1
+      ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight);
+      ctx.font = "20px arial";
+      ctx.fillStyle = "#006400";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        this.cardText,
+        this.x + this.cardWidth / 2,
+        this.y + this.cardHeight / 2 + 15
+      );
     }
   }
   move() {
     if (this.event === "card") {
       this.x -= speed;
     }
+  }
+  action() {
+    const action = this.cardText.split("");
+    switch (action[0]) {
+      case "+":
+        player.number += parseInt(action[2]);
+        break;
+      case "-":
+        player.number -= parseInt(action[2]);
+        break;
+    }
+    console.log(player.number);
+    eventAction = false; //resets event action and prevents this class method from being called repeatedly
   }
 }
 
@@ -116,10 +146,11 @@ function initializeGame() {
   nextPath = new Path(pathImage, path.x + path.width, 0);
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
   barrier2 = new Barrier(barrierImage, initialCardStart, 270);
-  player = new Player(playerImage, 50, 60);
-  card1 = new Event("card", initialCardStart, 50);
-  card2 = new Event("card", initialCardStart, 185); //CardBarrier
-  card3 = new Event("card", initialCardStart, 330);
+  player = new Player(playerImage, 50, 60, 1);
+  const text = newCardText();
+  card1 = new Event("card", initialCardStart, 50, text[0]);
+  card2 = new Event("card", initialCardStart, 185, text[1]); //CardBarrier
+  card3 = new Event("card", initialCardStart, 330, text[2]);
 
   //Run gameLoop at set interval
   const runGame = setInterval(gameLoop, 60);
@@ -138,7 +169,14 @@ function gameLoop() {
   blocked = checkBarrier();
 
   //Events
-  checkEventSelection();
+  if (!eventAction) {
+    //If eventAction is not assigned (the player hasn't selected an event)
+    checkEventSelection();
+  }
+  if (eventAction) {
+    //If the player has selected and event
+    eventAction.action();
+  }
   eventMovement();
   card1.render();
   card2.render();
@@ -150,7 +188,6 @@ function gameLoop() {
 
 //Movement
 function playerMovement(e) {
-  console.log(blocked);
   if (e.key === "w" && lane > -1 && !blocked) {
     lane--; //Move up
   }
@@ -190,9 +227,10 @@ function eventMovement() {
   card2.move();
   card3.move();
   if (card1.x < cardEventFrequency) {
-    card1 = new Event("card", game.width, 50);
-    card2 = new Event("card", game.width, 185);
-    card3 = new Event("card", game.width, 330);
+    const text = newCardText();
+    card1 = new Event("card", game.width, 50, text[0]);
+    card2 = new Event("card", game.width, 185, text[1]);
+    card3 = new Event("card", game.width, 330, text[2]);
   }
 }
 
@@ -207,18 +245,19 @@ function barrierMovement() {
 
 //Checks
 function checkEventSelection() {
-  eventArray = [card1, card2, card3, nextCard1, nextCard2, nextCard3];
+  eventArray = [card1, card2, card3];
   eventArray.forEach((event) => {
-    if (event) {
-      yMatch =
-        player.y > event.y &&
-        player.y + player.height < event.y + event.cardHeight;
-      if (
-        player.x + player.width - selectionRealistic > event.x &&
-        yMatch === true
-      ) {
-        event.show = false;
-      }
+    yMatch =
+      player.y > event.y &&
+      player.y + player.height < event.y + event.cardHeight;
+    if (
+      player.x + player.width - selectionRealistic > event.x &&
+      yMatch === true &&
+      event.run === false
+    ) {
+      event.show = false;
+      event.run = true;
+      eventAction = event;
     }
   });
 }
@@ -232,4 +271,34 @@ function checkBarrier() {
     return true;
   }
   return false;
+}
+
+//Other
+function newCardText() {
+  let result = [];
+  let howMany;
+  for (i = 0; i < 3; i++) {
+    //Math Cards
+    const cardPossibilities = ["add", "subtract"];
+    const randCard = Math.floor(Math.random() * cardPossibilities.length);
+    const cardSelection = cardPossibilities[randCard];
+    switch (cardSelection) {
+      case "add":
+        howMany = numberOfPeople();
+        result.push(`+ ${howMany} people`);
+        break;
+      case "subtract":
+        howMany = numberOfPeople();
+        result.push(`- ${howMany} people`);
+        break;
+    }
+  }
+  return result;
+}
+
+function numberOfPeople() {
+  const peoplePossibilities = [1, 2, 3, 4, 5]; //Possible number of people to add, subtract, etc
+  const randPeople = Math.floor(Math.random() * peoplePossibilities.length);
+  const peopleSelection = peoplePossibilities[randPeople];
+  return peopleSelection;
 }
