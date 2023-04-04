@@ -29,7 +29,7 @@ let nextCard3;
 let lane = -1; //The player initially starts in the upper lane
 const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 const cardEventFrequency = -game.width + 100; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
-const initialCardStart = 200; //How many pixels to the right of the game screen's x-axis the cards initially start
+const initialCardStart = 1000; //How many pixels to the right of the game screen's x-axis the cards initially start
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
 let eventAction; //The player selected event to run
@@ -283,7 +283,9 @@ function checkEventSelection() {
       event.run === false
     ) {
       event.show = false;
-      event.run = true;
+      card1.run = true;
+      card2.run = true;
+      card3.run = true;
       eventAction = event;
     }
   });
