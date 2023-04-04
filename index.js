@@ -32,7 +32,6 @@ const cardEventFrequency = -game.width + 100; //The number is how many pixels th
 const initialCardStart = 200; //How many pixels to the right of the game screen's x-axis the cards initially start
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
-let people = 1; //How many people the player has
 let eventAction; //The player selected event to run
 
 //====== Initialize Canvas ======\\
@@ -61,7 +60,7 @@ class Path {
 }
 
 class Player {
-  constructor(image, x, y, number) {
+  constructor(image, x, y, number, cloneImage) {
     this.image = image;
     this.x = x;
     this.y = y;
@@ -70,10 +69,32 @@ class Player {
     this.number = number;
   }
   render() {
-    //Rendering based on number of people does not work yet
-    for (i = 0; i < this.number; i++) {
-      ctx.drawImage(this.image, this.x, this.y);
-      this.x + 10;
+    ctx.drawImage(this.image, this.x, this.y); //Draw Player Image
+
+    //Shield Rendering
+    const shieldRendering = {
+      1: [this.width + 10, 5], //Right 0
+      2: [this.width + 10, 25], //Right - 1
+      3: [this.width + 10, -15], //Right + 1
+      4: [this.width + 10, 45], //Right - 2
+      5: [this.width + 10, -35], //Right + 2
+      6: [this.width - 10, -35], //Top 0
+      7: [this.width - 30, -35], //Top -1
+      8: [this.width - 50, -35], //Left 1
+      9: [this.width - 50, -15], //Left 2
+      10: [this.width - 50, 5], //Left 3
+      11: [this.width - 50, 25], //Left 4
+      12: [this.width - 50, 45], //Left 5
+      13: [this.width - 30, 45], //Left 4
+      14: [this.width - 10, 45], //Left 5
+    };
+
+    ctx.fillStyle = "blue"; //Shield Color
+
+    //Create correct number of shields
+    for (i = 1; i <= this.number; i++) {
+      const shieldXY = shieldRendering[i];
+      ctx.fillRect(this.x + shieldXY[0], this.y + shieldXY[1], 10, 10);
     }
   }
 }
@@ -146,7 +167,7 @@ function initializeGame() {
   nextPath = new Path(pathImage, path.x + path.width, 0);
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
   barrier2 = new Barrier(barrierImage, initialCardStart, 270);
-  player = new Player(playerImage, 50, 60, 1);
+  player = new Player(playerImage, 150, 80, 3);
   const text = newCardText();
   card1 = new Event("card", initialCardStart, 50, text[0]);
   card2 = new Event("card", initialCardStart, 185, text[1]); //CardBarrier
@@ -196,13 +217,15 @@ function playerMovement(e) {
   }
   switch (lane) {
     case -1:
-      player.y = 60; //Lane 1
+      player.y = 80; //Lane 1
       break;
     case 0:
-      player.y = 200; //Lane 2
+      player.y = 220; //Lane 2
+      player.render();
       break;
     case 1:
       player.y = 340; //Lane 3
+      player.render();
       break;
   }
 }
