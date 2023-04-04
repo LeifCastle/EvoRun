@@ -10,6 +10,7 @@ const playButton = document.querySelector("#playButton");
 const pathImage = document.querySelector("#path");
 const playerImage = document.querySelector("#player");
 const barrierImage = document.querySelector("#cardBarrier");
+const lava = document.querySelector("#lava");
 
 //====== Global Variables ======\\
 //Class Instances
@@ -24,16 +25,19 @@ let card3;
 let nextCard1;
 let nextCard2;
 let nextCard3;
+let badEvent;
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
-const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+const speed = 15; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 const cardEventFrequency = -game.width + 100; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
 const initialCardStart = 1000; //How many pixels to the right of the game screen's x-axis the cards initially start
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
 let eventAction; //The player selected event to run
 let runGame;
+let damage = 0; //Keeps track of how much damage the player is accruing
+let lavaDamage = 3; //How much damage the player takes over time this is actually a combination of speed and the interval time, not jsut a straigh up number (gotta fix that)
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -110,9 +114,10 @@ class Event {
     this.show = true; //If this event is visible, (false when the player selects it)
     this.cardText = cardText;
     this.run = false; //If this event has already run
+    this.lavaWidth = 186;
   }
   render() {
-    if ((this.event = "card") && this.show === true) {
+    if (this.event === "card" && this.show === true) {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(this.x, this.y, this.cardWidth, this.cardHeight);
       ctx.font = "20px arial";
@@ -124,11 +129,12 @@ class Event {
         this.y + this.cardHeight / 2 + 15
       );
     }
+    if (this.event === "damage") {
+      ctx.drawImage(lava, this.x, this.y);
+    }
   }
   move() {
-    if (this.event === "card") {
-      this.x -= speed;
-    }
+    this.x -= speed;
   }
   action() {
     const action = this.cardText.split("");
@@ -140,7 +146,6 @@ class Event {
         player.number -= parseInt(action[2]);
         break;
     }
-    console.log(player.number);
     eventAction = false; //resets event action and prevents this class method from being called repeatedly
   }
 }
@@ -173,6 +178,7 @@ function initializeGame() {
   card1 = new Event("card", initialCardStart, 50, text[0]);
   card2 = new Event("card", initialCardStart, 185, text[1]); //CardBarrier
   card3 = new Event("card", initialCardStart, 330, text[2]);
+  badEvent = new Event("damage", initialCardStart + 300, 20);
 
   //Run gameLoop at set interval
   runGame = setInterval(gameLoop, 60);
@@ -203,6 +209,9 @@ function gameLoop() {
   card1.render();
   card2.render();
   card3.render();
+
+  //Bad Events
+  manageLava();
 
   //Characters
   player.render();
@@ -341,4 +350,26 @@ function numberOfPeople() {
   const randPeople = Math.floor(Math.random() * peoplePossibilities.length);
   const peopleSelection = peoplePossibilities[randPeople];
   return peopleSelection;
+}
+
+//Bad Events
+function manageLava() {
+  badEvent.move();
+  if (badEvent.x + badEvent.lavaWidth < 0) {
+    badEvent = new Event("damage", game.width + 30, 20); //This is not quite the right x positioning
+  }
+  badEvent.render();
+  if (
+    player.x + player.width < badEvent.x + badEvent.lavaWidth &&
+    player.x > badEvent.x
+  ) {
+    damage++;
+    console.log(damage);
+    if (damage === lavaDamage) {
+      player.number--;
+      damage = 0;
+    }
+  } else {
+    damage = 0;
+  }
 }
