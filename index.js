@@ -37,7 +37,7 @@ let distanceMultiplier = 0.01; //Score is increased by number of pixels the play
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
-const speed = 15; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+const speed = 10; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 const cardEventFrequency = -game.width + 100; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
 const initialCardStart = 1000; //How many pixels to the right of the game screen's x-axis the cards initially start
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
@@ -46,6 +46,9 @@ let eventAction; //The player selected event to run
 let runGame;
 let damage = 0; //Keeps track of how much damage the player is accruing
 let lavaDamage = 3; //How much damage the player takes over time this is actually a combination of speed and the interval time, not jsut a straigh up number (gotta fix that)
+let lavaFlows = 1; //Tracks of how many lavaFlows the player has crossed + the current one
+const difficulty = 0; //negative difficulty is easer
+let shields = 3; //Tracks the highest number of total shields the player could possibly aquire (player class is currently called with three shields so this is set to three)
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -186,11 +189,12 @@ function initializeGame() {
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
   barrier2 = new Barrier(barrierImage, initialCardStart, 270);
   player = new Player(playerImage, 150, 80, 3);
-  const text = newCardText();
+  let text = verifyNewCard();
   card1 = new Event("card", initialCardStart, 50, text[0]);
   card2 = new Event("card", initialCardStart, 185, text[1]); //CardBarrier
   card3 = new Event("card", initialCardStart, 330, text[2]);
   badEvent = new Event("damage", initialCardStart + 300, 20);
+  lavaFlows++;
 
   //Run gameLoop at set interval
   runGame = setInterval(gameLoop, 60);
@@ -280,7 +284,7 @@ function eventMovement() {
   card2.move();
   card3.move();
   if (card1.x < cardEventFrequency) {
-    const text = newCardText();
+    let text = verifyNewCard();
     card1 = new Event("card", game.width, 50, text[0]);
     card2 = new Event("card", game.width, 185, text[1]);
     card3 = new Event("card", game.width, 330, text[2]);
@@ -342,7 +346,9 @@ function gameOverCheck() {
     restart.setAttribute("hidden", "hidden");
     playButton.removeAttribute("hidden");
     playButton.textContent = "Play Again";
-    score = 0;
+    score = 0; //reset the score
+    shields = 0; //reset accrued shields
+    lavaFlows = 0; //reset passed lava flows
   }
 }
 
@@ -381,6 +387,7 @@ function manageLava() {
   badEvent.move();
   if (badEvent.x + badEvent.lavaWidth < 0) {
     badEvent = new Event("damage", game.width + 30, 20); //This is not quite the right x positioning
+    lavaFlows++;
   }
   badEvent.render();
   if (
@@ -388,7 +395,6 @@ function manageLava() {
     player.x > badEvent.x
   ) {
     damage++;
-    console.log(damage);
     if (damage === lavaDamage) {
       player.number--;
       damage = 0;
@@ -404,4 +410,28 @@ function updateScore() {
   }
   scoreHtml.textContent = `Score: ${Math.floor(score)}`;
   highScoreHtml.textContent = `High Score: ${Math.floor(highScore)}`;
+}
+
+function verifyNewCard() {
+  let currentShield = 0;
+  let mostShields = 0;
+  while (1 > 0) {
+    text = newCardText();
+    text.forEach((card) => {
+      const action = card.split("");
+      switch (action[0]) {
+        case "+":
+          currentShield = parseInt(action[2]); //currentShield is assigned the card's shield number
+          if (currentShield > mostShields) {
+            mostShields = currentShield;
+          }
+          break;
+      }
+    });
+    shields += mostShields;
+    //If the proposed provided shield option are greater than the amount of damage the player will take, use the cards
+    if (lavaDamage * lavaFlows - difficulty < shields) {
+      return text;
+    }
+  }
 }
