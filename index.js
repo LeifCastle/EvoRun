@@ -5,6 +5,8 @@
 const game = document.querySelector("#game");
 const playButton = document.querySelector("#playButton");
 const restart = document.querySelector("#restart");
+const scoreHtml = document.querySelector("#score");
+const highScoreHtml = document.querySelector("#highScore");
 
 //Images
 const pathImage = document.querySelector("#path");
@@ -26,6 +28,12 @@ let nextCard1;
 let nextCard2;
 let nextCard3;
 let badEvent;
+
+//Scoring
+let score = 0;
+let highScore = 0;
+const shieldMultiplier = 10; //Score is increased by number of shields gained * this multiplier (loosing shields does not decrease a player's score)
+let distanceMultiplier = 0.01; //Score is increased by number of pixels the player has moved * this multiplier
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
@@ -142,6 +150,7 @@ class Event {
     switch (action[0]) {
       case "+":
         player.number += parseInt(action[2]);
+        score += parseInt(action[2]) * shieldMultiplier;
         break;
       case "-":
         player.number -= parseInt(action[2]);
@@ -219,6 +228,9 @@ function gameLoop() {
   //Characters
   player.render();
 
+  //Score
+  updateScore();
+
   //Game End
   gameOverCheck();
 }
@@ -248,6 +260,8 @@ function playerMovement(e) {
 
 function pathMovement() {
   path.x -= speed; //Move Path
+  score += speed * distanceMultiplier;
+  distanceMultiplier += 0.01;
   // If the first path is fully to the left of the canvas, reassign it to the next path
   if (path.x + path.width < 0) {
     path = nextPath;
@@ -318,6 +332,7 @@ function gameOverCheck() {
   if (player.number <= 0) {
     ctx.clearRect(0, 0, game.width, game.height);
     clearInterval(runGame);
+    //If playerclicked restart
     if (player.number != -100) {
       ctx.font = "50px sans";
       ctx.fillStyle = "#006400";
@@ -327,6 +342,7 @@ function gameOverCheck() {
     restart.setAttribute("hidden", "hidden");
     playButton.removeAttribute("hidden");
     playButton.textContent = "Play Again";
+    score = 0;
   }
 }
 
@@ -380,4 +396,12 @@ function manageLava() {
   } else {
     damage = 0;
   }
+}
+
+function updateScore() {
+  if (score > highScore) {
+    highScore = score;
+  }
+  scoreHtml.textContent = `Score: ${Math.floor(score)}`;
+  highScoreHtml.textContent = `High Score: ${Math.floor(highScore)}`;
 }
