@@ -33,6 +33,7 @@ const initialCardStart = 200; //How many pixels to the right of the game screen'
 const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
 let eventAction; //The player selected event to run
+let runGame;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -174,7 +175,7 @@ function initializeGame() {
   card3 = new Event("card", initialCardStart, 330, text[2]);
 
   //Run gameLoop at set interval
-  const runGame = setInterval(gameLoop, 60);
+  runGame = setInterval(gameLoop, 60);
 }
 
 //====== Game Functions ======\\
@@ -205,6 +206,9 @@ function gameLoop() {
 
   //Characters
   player.render();
+
+  //Game End
+  gameOverCheck();
 }
 
 //Movement
@@ -294,6 +298,17 @@ function checkBarrier() {
     return true;
   }
   return false;
+}
+
+function gameOverCheck() {
+  if (player.number <= 0) {
+    ctx.clearRect(0, 0, game.width, game.height);
+    clearInterval(runGame);
+    ctx.font = "50px sans";
+    ctx.fillStyle = "#006400";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 15);
+  }
 }
 
 //Other
