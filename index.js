@@ -1,6 +1,5 @@
 //====== General ToDo ======\\
 //make array of each class instance of cardEvents and run a forEach loop in game Loop for each function that deals with them
-//make barrier so player can't select multiple cards
 
 //====== Global DOM Variables ======\\
 const game = document.querySelector("#game");
