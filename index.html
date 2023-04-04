@@ -4,17 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>EvoRun</title>
+    <title>Lava Run</title>
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div id="container">
-      <h1>Evo Wars</h1>
-      <main>
-        <canvas id="game"><!-- play it, a game --></canvas>
-      </main>
+    <header>
+      <img src="Images/gameName.gif" alt="Lava Run" />
+    </header>
+    <main>
+      <canvas id="game"></canvas>
       <button id="playButton">Play</button>
-    </div>
+      <div id="scoreContainer"><p id="score" class="gameStat">Score: 0</p></div>
+      <button id="restart" hidden="hidden">Restart</button>
+      <div id="highScoreContainer">
+        <p id="highScore" class="gameStat">High Score: 0</p>
+      </div>
+    </main>
     <div id="renderContainer">
       <img
         src="./Images/basicPath.png"

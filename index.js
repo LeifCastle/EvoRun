@@ -4,6 +4,7 @@
 //====== Global DOM Variables ======\\
 const game = document.querySelector("#game");
 const playButton = document.querySelector("#playButton");
+const restart = document.querySelector("#restart");
 
 //Images
 const pathImage = document.querySelector("#path");
@@ -47,6 +48,7 @@ game.setAttribute("width", 900); //Set to getComputedStyle(game)["width"] after 
 window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
   document.addEventListener("keydown", (e) => playerMovement(e));
+  restart.addEventListener("click", () => (player.number = -100)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
 });
 
 //====== Renderable Classes ======\\
@@ -168,6 +170,8 @@ class Barrier {
 //====== Initialize Game ======\\
 function initializeGame() {
   //Initialize entities to render
+  playButton.setAttribute("hidden", "hidden");
+  restart.removeAttribute("hidden");
   path = new Path(pathImage, 0, 0);
   nextPath = new Path(pathImage, path.x + path.width, 0);
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
@@ -314,10 +318,15 @@ function gameOverCheck() {
   if (player.number <= 0) {
     ctx.clearRect(0, 0, game.width, game.height);
     clearInterval(runGame);
-    ctx.font = "50px sans";
-    ctx.fillStyle = "#006400";
-    ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 15);
+    if (player.number != -100) {
+      ctx.font = "50px sans";
+      ctx.fillStyle = "#006400";
+      ctx.textAlign = "center";
+      ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
+    }
+    restart.setAttribute("hidden", "hidden");
+    playButton.removeAttribute("hidden");
+    playButton.textContent = "Play Again";
   }
 }
 
