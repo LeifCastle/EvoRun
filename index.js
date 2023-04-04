@@ -142,8 +142,27 @@ class Event {
       ctx.font = "20px arial";
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
+      let displayText = "";
+      const text = this.cardText.split("");
+      const operator = text.splice(0, 1).toString();
+      const number = text;
+      switch (operator) {
+        case "a":
+          if (number.length > 1) {
+            displayText = `${number[0]} ${number[1]}`;
+          } else {
+            displayText = `+ ${number[0]}`;
+          }
+          break;
+        case "b":
+          displayText = `x ${number[0]}`;
+          break;
+        case "c":
+          displayText = `/ ${number[0]}`;
+          break;
+      }
       ctx.fillText(
-        this.cardText,
+        displayText,
         this.x + this.shieldImage.width / 2,
         this.y + this.shieldImage.height / 2 + 7
       );
@@ -157,13 +176,19 @@ class Event {
   }
   action() {
     const action = this.cardText.split("");
-    switch (action[0]) {
-      case "+":
-        player.number += parseInt(action[2]);
-        score += parseInt(action[2]) * shieldMultiplier;
+    const operator = action.splice(0, 1).toString();
+    const number = parseInt(action.join(""));
+    //console.log("operator: ", operator, "number: ", number);
+    switch (operator) {
+      case "a":
+        player.number = player.number + number;
+        score += number * shieldMultiplier;
         break;
-      case "-":
-        player.number -= parseInt(action[2]);
+      case "b":
+        player.number = player.number * number;
+        break;
+      case "c":
+        player.number = player.number / number;
         break;
     }
     eventAction = false; //resets event action and prevents this class method from being called repeatedly
@@ -373,30 +398,52 @@ function gameOverCheck() {
 //Other
 function newCardText() {
   let result = [];
+  let shieldPossibilities = [];
+  let randOrder = Math.floor(Math.random() * 3); //Puts the succesfull path in a random lane
   for (i = 0; i < 3; i++) {
-    if (i === 0) {
-      const lowestPossibility = 4 - extraShields;
+    if (i === randOrder) {
+      const lowestPossibility = 4 - extraShields; //The lowest number a succesfull path could be is 4 (because each lava flow takes three shields away and you need at least one), and then subtract any extra shields the sucesffull path has
+      //Get a random number greater than the lowest possible number
       const rndRequired = randomIntFromInterval(
         lowestPossibility,
-        lowestPossibility + 5 //change to difficulty?
+        lowestPossibility + 4 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
       );
-      if (rndRequired < 0) {
-        result.push(`- ${Math.abs(rndRequired)}`);
-        extraShields -= Math.abs(rndRequired) - 3;
-      } else {
-        result.push(`+ ${rndRequired}`);
-        extraShields += rndRequired - 3;
-      }
+
+      result.push(`a${rndRequired}`);
+      extraShields = extraShields - 3 + rndRequired;
+
+      //console.log("Attempt: ", rndRequired, "Extra Shields: ", extraShields);
     } else {
-      const operatorPossibilities = ["+", "-"];
+      const operatorPossibilities = [
+        "a",
+        "a",
+        "a",
+        "a",
+        "a",
+        "a",
+        "a",
+        "a",
+        "b",
+        "c",
+      ]; //A is addition and subtraction, B is multiplication, C = division
       const randOperator = Math.floor(
         Math.random() * operatorPossibilities.length
       );
       const operatorSelection = operatorPossibilities[randOperator];
-      const shieldPossibilities = [1, 2, 3, 4, 5, 6];
+      switch (operatorSelection) {
+        case "a":
+          shieldPossibilities = [-1, -2, -3, -4, -5, -6, 0, 1, 2, 3, 4, 5, 6];
+          break;
+        case "b":
+          shieldPossibilities = [1, 2, 2, 2, 2];
+          break;
+        case "c":
+          shieldPossibilities = [1, 2, 2, 2, 2];
+          break;
+      }
       const randShield = Math.floor(Math.random() * shieldPossibilities.length);
       const shieldSelection = shieldPossibilities[randShield];
-      result.push(`${operatorSelection} ${shieldSelection}`); //Push the math operator and the number of shields
+      result.push(`${operatorSelection}${shieldSelection}`); //Push the math operator and the number of shields
     }
   }
   return result;
