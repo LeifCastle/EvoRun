@@ -9,7 +9,7 @@ const highScoreHtml = document.querySelector("#highScore");
 const pathImage = document.querySelector("#path");
 const playerImage = document.querySelector("#player");
 const barrierImage = document.querySelector("#cardBarrier");
-const lava = document.querySelector("#lava");
+const lavaImage = document.querySelector("#lava");
 const shieldImage = document.querySelector("#shield");
 
 //====== Global Variables ======\\
@@ -19,13 +19,10 @@ let nextPath;
 let barrier1;
 let barrier2;
 let player;
-let card1;
-let card2;
-let card3;
-let nextCard1;
-let nextCard2;
-let nextCard3;
-let badEvent;
+let shield1;
+let shield2;
+let shield3;
+let lava;
 
 //Scoring
 let score = 0;
@@ -41,22 +38,17 @@ let fps = 60; //The game's refresh rate in frames per second
 //Important
 const speed = 6; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
-const difficulty = 1; //How many more shields than absoultely neccesary the game has the random possibility to create (negative difficulty is easier)
+const difficulty = 1; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
-const cardEventFrequency = -game.width + 100; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
+const renderFrequency = -game.width; //The number is how many pixels the player must progress to get to the next card event (plus at least one gamescreen width to remove double rendering intricacies)
 const initialCardStart = 1000; //How many pixels to the right of the game screen's x-axis the cards initially start
-const selectionRealistic = 15; //How many pixels the player's image can enter a card before it counts as selected
 let blocked = false; //If the player is currently blocked by a card barrier
-let eventAction; //The player selected event to run
-let runGame;
-let damagez = 0; //Keeps track of how much damage the player is accruing
-let lavaFlows = 1; //Tracks of how many lavaFlows the player has crossed + the current one
-let shields = 3; //Tracks the highest number of total shields the player could possibly aquire (player class is currently called with three shields so this is set to three)
+let shieldSelected; //The player selected event to run
 let gameEnd; //Tracks if the game has ended
 let peoplePossibilities = [];
-let extraShields = 3;
+let extraShields = 0;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -66,7 +58,7 @@ game.setAttribute("width", 900); //Set to getComputedStyle(game)["width"] after 
 //====== Event Listeners ======\\
 window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
-  document.addEventListener("keydown", (e) => playerMovement(e));
+  document.addEventListener("keydown", (e) => player.move(e));
   restart.addEventListener("click", () => (player.number = -100)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
 });
 
@@ -81,6 +73,9 @@ class Path {
   }
   render() {
     ctx.drawImage(this.image, this.x, this.y);
+  }
+  move() {
+    path.x -= speed;
   }
 }
 
@@ -120,6 +115,27 @@ class Player {
     for (i = 1; i <= this.number; i++) {
       const shieldXY = shieldRendering[i];
       ctx.fillRect(this.x + shieldXY[0], this.y + shieldXY[1], 10, 10);
+    }
+  }
+  move(e) {
+    if (e.key === "w" && lane > -1 && !blocked) {
+      lane--; //Move up
+    }
+    if (e.key === "s" && lane < 1 && !blocked) {
+      lane++; //Move down
+    }
+    switch (lane) {
+      case -1:
+        player.y = 80; //Lane 1
+        break;
+      case 0:
+        player.y = 220; //Lane 2
+        player.render();
+        break;
+      case 1:
+        player.y = 340; //Lane 3
+        player.render();
+        break;
     }
   }
 }
@@ -168,7 +184,7 @@ class Event {
       );
     }
     if (this.event === "damage") {
-      ctx.drawImage(lava, this.x, this.y);
+      ctx.drawImage(lavaImage, this.x, this.y);
     }
   }
   move() {
@@ -191,7 +207,7 @@ class Event {
         player.number = player.number / number;
         break;
     }
-    eventAction = false; //resets event action and prevents this class method from being called repeatedly
+    shieldSelected = false; //resets event action and prevents this class method from being called repeatedly
   }
 }
 
@@ -221,13 +237,11 @@ function initializeGame() {
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
   barrier2 = new Barrier(barrierImage, initialCardStart, 270);
   player = new Player(playerImage, 150, 80, 3);
-  damagez += lavaDamage;
-  let text = newCardText();
-  card1 = new Event("card", initialCardStart, 50, text[0], shieldImage);
-  card2 = new Event("card", initialCardStart, 185, text[1], shieldImage); //CardBarrier
-  card3 = new Event("card", initialCardStart, 330, text[2], shieldImage);
-  badEvent = new Event("damage", initialCardStart + 300, 20);
-  lavaFlows++;
+  let text = newShieldCount();
+  shield1 = new Event("card", initialCardStart, 50, text[0], shieldImage);
+  shield2 = new Event("card", initialCardStart, 185, text[1], shieldImage); //CardBarrier
+  shield3 = new Event("card", initialCardStart, 330, text[2], shieldImage);
+  lava = new Event("damage", initialCardStart + 300, 20);
   gameEnd = false;
   //Run gameLoop at player's device's max frames/second
   window.requestAnimationFrame(gameLoop);
@@ -236,39 +250,40 @@ function initializeGame() {
 //====== Game Functions ======\\
 //GameLoop
 function gameLoop(timeStamp) {
-  //Game Style
-  pathMovement();
+  //== Path & Game Rendering
+  path.move(); //Move the path
+  gameRerendering(); //Rerender class instances if neccesary
   path.render();
   nextPath.render();
-  barrierMovement();
-  barrier1.render();
-  barrier2.render();
+
+  //== Move Game Objects
+  barrier1.move();
+  barrier2.move();
+  shield1.move();
+  shield2.move();
+  shield3.move();
+  lava.move();
+
+  //== Take Action
   blocked = checkBarrier();
-
-  //Events
-  if (!eventAction) {
-    //If eventAction is not assigned (the player hasn't selected an event)
-    checkEventSelection();
+  if (!shieldSelected) {
+    checkShieldSelected();
+  } else {
+    shieldSelected.action();
   }
-  if (eventAction) {
-    //If the player has selected and event
-    eventAction.action();
-  }
-  eventMovement();
-  card1.render();
-  card2.render();
-  card3.render();
-
-  //Bad Events
   manageLava();
-
-  //Characters
-  player.render();
-
-  //Score
   updateScore();
 
-  //Game End
+  //== Render Game Objects
+  barrier1.render();
+  barrier2.render();
+  shield1.render();
+  shield2.render();
+  shield3.render();
+  lava.render();
+  player.render();
+
+  //GameOver
   gameOverCheck();
 
   // Calculate fps
@@ -280,85 +295,23 @@ function gameLoop(timeStamp) {
   }
 }
 
-//Movement
-function playerMovement(e) {
-  if (e.key === "w" && lane > -1 && !blocked) {
-    lane--; //Move up
-  }
-  if (e.key === "s" && lane < 1 && !blocked) {
-    lane++; //Move down
-  }
-  switch (lane) {
-    case -1:
-      player.y = 80; //Lane 1
-      break;
-    case 0:
-      player.y = 220; //Lane 2
-      player.render();
-      break;
-    case 1:
-      player.y = 340; //Lane 3
-      player.render();
-      break;
-  }
-}
-
-function pathMovement() {
-  path.x -= speed; //Move Path
-  score += speed * distanceMultiplier;
-  distanceMultiplier += 0.01;
-  // If the first path is fully to the left of the canvas, reassign it to the next path
-  if (path.x + path.width < 0) {
-    path = nextPath;
-  }
-  //If the first path is to the left of the right side of the canvas, render a new path
-  if (path.x + path.width < game.width) {
-    nextPath = new Path(pathImage, path.x + path.width, 0);
-  } else {
-    //the else statement removes a noticeable jerk from creating a new path and immediately moving it
-    nextPath.x -= speed;
-  }
-}
-
-function eventMovement() {
-  card1.move();
-  card2.move();
-  card3.move();
-  if (card1.x < cardEventFrequency) {
-    damagez += lavaDamage;
-    let text = newCardText();
-    card1 = new Event("card", game.width, 50, text[0], shieldImage);
-    card2 = new Event("card", game.width, 185, text[1], shieldImage);
-    card3 = new Event("card", game.width, 330, text[2], shieldImage);
-  }
-}
-
-function barrierMovement() {
-  barrier1.move();
-  barrier2.move();
-  if (barrier1.x < cardEventFrequency) {
-    barrier1 = new Barrier(barrierImage, game.width, 138);
-    barrier2 = new Barrier(barrierImage, game.width, 270);
-  }
-}
-
 //Checks
-function checkEventSelection() {
-  eventArray = [card1, card2, card3];
+function checkShieldSelected() {
+  eventArray = [shield1, shield2, shield3];
   eventArray.forEach((event) => {
     yMatch =
       player.y > event.y &&
       player.y + player.height < event.y + event.shieldImage.height;
     if (
-      player.x + player.width - selectionRealistic > event.x &&
+      player.x + player.width - 15 > event.x &&
       yMatch === true &&
       event.run === false
     ) {
       event.show = false;
-      card1.run = true;
-      card2.run = true;
-      card3.run = true;
-      eventAction = event;
+      shield1.run = true;
+      shield2.run = true;
+      shield3.run = true;
+      shieldSelected = event;
     }
   });
 }
@@ -375,7 +328,7 @@ function checkBarrier() {
 }
 
 function gameOverCheck() {
-  if (player.number <= 0) {
+  if (player.number <= 0 && lava.damaged === true) {
     ctx.clearRect(0, 0, game.width, game.height);
     //If playerclicked restart
     if (player.number != -100) {
@@ -388,15 +341,42 @@ function gameOverCheck() {
     playButton.removeAttribute("hidden");
     playButton.textContent = "Play Again";
     score = 0; //reset the score
-    shields = 0; //reset accrued shields
-    damagez = 0;
-    lavaFlows = 0; //reset passed lava flows
     gameEnd = true; //prevent gameLoop from running again
   }
 }
 
 //Other
-function newCardText() {
+function gameRerendering() {
+  //Create new path if neccesary
+  if (path.x + path.width < 0) {
+    path = nextPath;
+  }
+  if (path.x + path.width < game.width) {
+    nextPath = new Path(pathImage, path.x + path.width, 0);
+  } else {
+    nextPath.x -= speed;
+  }
+
+  //Create new shields if neccesary
+  if (shield1.x < renderFrequency) {
+    let text = newShieldCount();
+    shield1 = new Event("card", game.width, 50, text[0], shieldImage);
+    shield2 = new Event("card", game.width, 185, text[1], shieldImage);
+    shield3 = new Event("card", game.width, 330, text[2], shieldImage);
+  }
+  //Create a new barrier if neccesary
+  if (barrier1.x < renderFrequency) {
+    barrier1 = new Barrier(barrierImage, game.width, 138);
+    barrier2 = new Barrier(barrierImage, game.width, 270);
+  }
+
+  //Create new Lava FLow if neccesary
+  if (lava.x < renderFrequency) {
+    lava = new Event("damage", game.width, 20); //This is not quite the right x positioning
+  }
+}
+
+function newShieldCount() {
   let result = [];
   let shieldPossibilities = [];
   let randOrder = Math.floor(Math.random() * 3); //Puts the succesfull path in a random lane
@@ -406,7 +386,7 @@ function newCardText() {
       //Get a random number greater than the lowest possible number
       const rndRequired = randomIntFromInterval(
         lowestPossibility,
-        lowestPossibility + 4 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
+        lowestPossibility + 1 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
       );
 
       result.push(`a${rndRequired}`);
@@ -449,26 +429,22 @@ function newCardText() {
   return result;
 }
 
-//Bad Events
 function manageLava() {
-  badEvent.move();
-  if (badEvent.x + badEvent.lavaWidth < 0) {
-    badEvent = new Event("damage", game.width + 30, 20); //This is not quite the right x positioning
-    lavaFlows++;
-  }
-  badEvent.render();
   //If player is within lava field
   if (
-    player.x + player.width < badEvent.x + badEvent.lavaWidth &&
-    player.x > badEvent.x &&
-    badEvent.damaged === false
+    player.x + player.width < lava.x + lava.lavaWidth &&
+    player.x > lava.x &&
+    lava.damaged === false
   ) {
     player.number -= lavaDamage;
-    badEvent.damaged = true;
+    lava.damaged = true;
   }
 }
 
 function updateScore() {
+  score += speed * distanceMultiplier; //increase score
+  distanceMultiplier += 0.01;
+
   if (score > highScore) {
     highScore = score;
   }
