@@ -12,6 +12,7 @@ const barrierImage = document.querySelector("#cardBarrier");
 const lavaImage = document.querySelector("#lava");
 const shieldImage = document.querySelector("#shield");
 const shieldSpriteSheet = document.querySelector("#shieldArc");
+const burningPlayerImage = document.querySelector("#burningPlayer");
 
 //====== Global Variables ======\\
 //Class Instances
@@ -31,17 +32,10 @@ let highScore = 0;
 const shieldMultiplier = 10; //Score is increased by number of shields gained * this multiplier (loosing shields does not decrease a player's score)
 let distanceMultiplier = 0.01; //Score is increased by number of pixels the player has moved * this multiplier
 
-//FPS Variables
-let secondsPassed;
-let oldTimeStamp;
-let fps = 60; //The game's refresh rate in frames per second
-
 //Important
 const speed = 6; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
 const difficulty = 1; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
-let sy = 0; //y coordinate to start clipping
-let rendered = 0;
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
@@ -50,8 +44,15 @@ const initialCardStart = 1000; //How many pixels to the right of the game screen
 let blocked = false; //If the player is currently blocked by a card barrier
 let shieldSelected; //The player selected event to run
 let gameEnd; //Tracks if the game has ended
-let peoplePossibilities = [];
-let extraShields = 0;
+let peoplePossibilities = []; //The actual amount of shields to give or take
+let extraShields = 0; //How many extra shields the player has in comparison to how many they need to cross the next lava flow
+let restarted = false; //If the player clicked restart
+let sy = 0; //y coordinate to start clipping shield sprites
+let psx = 0; //x coordinate to start rendering player sprites
+let bpsy = 0;
+let rendered = 0; //he number of shields the player has rendered (but not neccesarily supposed to have)
+let playerSpriteRun = true;
+let bplayerSpriteRun = true;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -62,7 +63,7 @@ game.setAttribute("width", 900); //Set to getComputedStyle(game)["width"] after 
 window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
   document.addEventListener("keydown", (e) => player.move(e));
-  restart.addEventListener("click", () => (gameEnd = true)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
+  restart.addEventListener("click", () => (restarted = true)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
 });
 
 //====== Renderable Classes ======\\
@@ -83,24 +84,63 @@ class Path {
 }
 
 class Player {
-  constructor(image, x, y, number, cloneImage) {
+  constructor(image, x, y, number) {
     this.image = image;
     this.x = x;
     this.y = y;
     this.width = image.width;
     this.height = image.height;
     this.number = number;
+    this.alive = true;
+    this.burned = false;
   }
   render() {
-    ctx.drawImage(this.image, this.x, this.y); //Draw Player Image
+    //If player is in the lava render burning player sprites
+    if (player.x + 10 < lava.x + lava.lavaWidth && player.x > lava.x) {
+      if (bpsy > 180) {
+        bpsy = 0;
+      }
+      if (bplayerSpriteRun) {
+        setTimeout(() => {
+          bpsy += 60;
+          bplayerSpriteRun = true;
+        }, 50);
+        bplayerSpriteRun = false;
+      }
+      ctx.drawImage(
+        burningPlayerImage,
+        0,
+        bpsy,
+        30,
+        60,
+        this.x,
+        this.y,
+        30,
+        60
+      );
+    } else {
+      //render normal sprites
+      if (psx > 80) {
+        psx = 0;
+      }
+      if (playerSpriteRun) {
+        setTimeout(() => {
+          psx += 30;
+          playerSpriteRun = true;
+        }, 50);
+        playerSpriteRun = false;
+      }
+      ctx.drawImage(playerImage, psx, 0, 30, 60, this.x, this.y, 30, 60);
+    }
     let swidth = 35; //width of the clipped image
     let sheight = 112; //height of the clipped image
     let sx = 0; //x coordinate to start clipping
-    let x = this.x + 30; //x corrdinate to start drawing sprite
-    let y = this.y - 50; //y corrdinate to start drawing sprite
-    // if (this.number > 18) {
-    //   this.number = 18;
-    // }
+    let x = this.x + 20; //x corrdinate to start drawing sprite
+    let y = this.y - 25; //y corrdinate to start drawing sprite
+    //Max shields player can aquire
+    if (this.number > 33) {
+      this.number = 33;
+    }
     for (rendered; rendered < this.number; rendered++) {
       setTimeout(() => {
         sy += sheight;
@@ -109,6 +149,9 @@ class Player {
     for (rendered; rendered > this.number; rendered--) {
       setTimeout(() => {
         sy -= sheight;
+        if (sy < 0) {
+          this.alive = false;
+        }
       }, 50 * rendered);
     }
     ctx.drawImage(
@@ -132,14 +175,14 @@ class Player {
     }
     switch (lane) {
       case -1:
-        player.y = 80; //Lane 1
+        player.y = 60; //Lane 1
         break;
       case 0:
-        player.y = 220; //Lane 2
+        player.y = 190; //Lane 2
         player.render();
         break;
       case 1:
-        player.y = 340; //Lane 3
+        player.y = 331; //Lane 3
         player.render();
         break;
     }
@@ -154,7 +197,7 @@ class Event {
     this.show = true; //If this event is visible, (false when the player selects it)
     this.cardText = cardText;
     this.run = false; //If this event has already run
-    this.lavaWidth = 186;
+    this.lavaWidth = lavaImage.width;
     this.shieldImage = image;
     this.damaged = false; //If the lava flow has already dealt damage or not
   }
@@ -236,13 +279,14 @@ class Barrier {
 //====== Initialize Game ======\\
 function initializeGame() {
   //Initialize entities to render
+  restarted = false;
   playButton.setAttribute("hidden", "hidden");
   restart.removeAttribute("hidden");
   path = new Path(pathImage, 0, 0);
   nextPath = new Path(pathImage, path.x + path.width, 0);
   barrier1 = new Barrier(barrierImage, initialCardStart, 138);
   barrier2 = new Barrier(barrierImage, initialCardStart, 270);
-  player = new Player(playerImage, 150, 80, 3);
+  player = new Player(playerImage, 150, 60, 3);
   let text = newShieldCount();
   shield1 = new Event("card", initialCardStart, 50, text[0], shieldImage);
   shield2 = new Event("card", initialCardStart, 185, text[1], shieldImage); //CardBarrier
@@ -255,7 +299,7 @@ function initializeGame() {
 
 //====== Game Functions ======\\
 //GameLoop
-function gameLoop(timeStamp) {
+function gameLoop() {
   //== Path & Game Rendering
   path.move(); //Move the path
   gameRerendering(); //Rerender class instances if neccesary
@@ -269,7 +313,6 @@ function gameLoop(timeStamp) {
   shield2.move();
   shield3.move();
   lava.move();
-
   //== Take Action
   blocked = checkBarrier();
   if (!shieldSelected) {
@@ -290,34 +333,32 @@ function gameLoop(timeStamp) {
   player.render();
 
   //GameOver
-  gameOverCheck();
-
-  // Calculate fps
-  secondsPassed = (timeStamp - oldTimeStamp) / 1000;
-  oldTimeStamp = timeStamp;
-  fps = Math.round(1 / secondsPassed);
   if (!gameEnd) {
     window.requestAnimationFrame(gameLoop);
+    gameOverCheck();
+  }
+  if (restarted === true) {
+    endGame(true);
   }
 }
 
 //Checks
 function checkShieldSelected() {
-  eventArray = [shield1, shield2, shield3];
-  eventArray.forEach((event) => {
+  const shieldArray = [shield1, shield2, shield3];
+  shieldArray.forEach((shield) => {
     yMatch =
-      player.y > event.y &&
-      player.y + player.height < event.y + event.shieldImage.height;
+      player.y > shield.y &&
+      player.y + player.height < shield.y + shield.shieldImage.height;
     if (
-      player.x + player.width - 15 > event.x &&
+      player.x + player.width - 15 > shield.x &&
       yMatch === true &&
-      event.run === false
+      shield.run === false
     ) {
-      event.show = false;
+      shield.show = false;
       shield1.run = true;
       shield2.run = true;
       shield3.run = true;
-      shieldSelected = event;
+      shieldSelected = shield;
     }
   });
 }
@@ -334,23 +375,26 @@ function checkBarrier() {
 }
 
 function gameOverCheck() {
-  if ((player.number <= 0 && lava.damaged === true) || gameEnd === true) {
-    ctx.clearRect(0, 0, game.width, game.height);
-    //If playerclicked hasn't clicked restart
-    if (gameEnd != true) {
-      ctx.font = "50px sans";
-      ctx.fillStyle = "#006400";
-      ctx.textAlign = "center";
-      ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
-    }
-    restart.setAttribute("hidden", "hidden");
-    playButton.removeAttribute("hidden");
-    playButton.textContent = "Play Again";
-    score = 0; //reset the score
-    gameEnd = true; //prevent gameLoop from running again
+  //Game only ends when the player is in the lava
+  if (lava.damaged === true && player.alive === false) {
+    gameEnd = true; //Stop the gameLoop from running again
+    //Clear the screen and display endgame stats after player burning sprite is done
+    burn();
+    //Nested timeout stops player from rendering on endGame screen
+    setTimeout(() => {
+      player.burned = true;
+      setTimeout(() => {
+        endGame();
+      }, 100);
+    }, 2000);
   }
 }
-
+function burn() {
+  player.render();
+  if (player.burned === false) {
+    window.requestAnimationFrame(burn);
+  }
+}
 //Other
 function gameRerendering() {
   //Create new path if neccesary
@@ -461,4 +505,20 @@ function updateScore() {
 function randomIntFromInterval(min, max) {
   // min and max included
   return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function endGame(restartClicked) {
+  gameEnd = true;
+  ctx.clearRect(0, 0, game.width, game.height);
+  //If player is not restarting
+  if (!restartClicked) {
+    ctx.font = "50px sans";
+    ctx.fillStyle = "#006400";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
+  }
+  restart.setAttribute("hidden", "hidden");
+  playButton.removeAttribute("hidden");
+  playButton.textContent = "Play Again";
+  score = 0; //reset the score
 }
