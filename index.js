@@ -11,6 +11,7 @@ const playerImage = document.querySelector("#player");
 const barrierImage = document.querySelector("#cardBarrier");
 const lavaImage = document.querySelector("#lava");
 const shieldImage = document.querySelector("#shield");
+const shieldSpriteSheet = document.querySelector("#shieldArc");
 
 //====== Global Variables ======\\
 //Class Instances
@@ -39,6 +40,8 @@ let fps = 60; //The game's refresh rate in frames per second
 const speed = 6; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
 const difficulty = 1; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
+let sy = 0; //y coordinate to start clipping
+let rendered = 0;
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
@@ -59,7 +62,7 @@ game.setAttribute("width", 900); //Set to getComputedStyle(game)["width"] after 
 window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
   document.addEventListener("keydown", (e) => player.move(e));
-  restart.addEventListener("click", () => (player.number = -100)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
+  restart.addEventListener("click", () => (gameEnd = true)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
 });
 
 //====== Renderable Classes ======\\
@@ -90,32 +93,35 @@ class Player {
   }
   render() {
     ctx.drawImage(this.image, this.x, this.y); //Draw Player Image
-
-    //Shield Rendering
-    const shieldRendering = {
-      1: [this.width + 10, 5], //Right 0
-      2: [this.width + 10, 25], //Right - 1
-      3: [this.width + 10, -15], //Right + 1
-      4: [this.width + 10, 45], //Right - 2
-      5: [this.width + 10, -35], //Right + 2
-      6: [this.width - 10, -35], //Top 0
-      7: [this.width - 30, -35], //Top -1
-      8: [this.width - 50, -35], //Left 1
-      9: [this.width - 50, -15], //Left 2
-      10: [this.width - 50, 5], //Left 3
-      11: [this.width - 50, 25], //Left 4
-      12: [this.width - 50, 45], //Left 5
-      13: [this.width - 30, 45], //Left 4
-      14: [this.width - 10, 45], //Left 5
-    };
-
-    ctx.fillStyle = "blue"; //Shield Color
-
-    //Create correct number of shields
-    for (i = 1; i <= this.number; i++) {
-      const shieldXY = shieldRendering[i];
-      ctx.fillRect(this.x + shieldXY[0], this.y + shieldXY[1], 10, 10);
+    let swidth = 35; //width of the clipped image
+    let sheight = 112; //height of the clipped image
+    let sx = 0; //x coordinate to start clipping
+    let x = this.x + 30; //x corrdinate to start drawing sprite
+    let y = this.y - 50; //y corrdinate to start drawing sprite
+    // if (this.number > 18) {
+    //   this.number = 18;
+    // }
+    for (rendered; rendered < this.number; rendered++) {
+      setTimeout(() => {
+        sy += sheight;
+      }, 50 * rendered);
     }
+    for (rendered; rendered > this.number; rendered--) {
+      setTimeout(() => {
+        sy -= sheight;
+      }, 50 * rendered);
+    }
+    ctx.drawImage(
+      shieldSpriteSheet,
+      sx,
+      sy,
+      swidth,
+      sheight,
+      x,
+      y,
+      swidth,
+      sheight
+    );
   }
   move(e) {
     if (e.key === "w" && lane > -1 && !blocked) {
@@ -328,10 +334,10 @@ function checkBarrier() {
 }
 
 function gameOverCheck() {
-  if (player.number <= 0 && lava.damaged === true) {
+  if ((player.number <= 0 && lava.damaged === true) || gameEnd === true) {
     ctx.clearRect(0, 0, game.width, game.height);
-    //If playerclicked restart
-    if (player.number != -100) {
+    //If playerclicked hasn't clicked restart
+    if (gameEnd != true) {
       ctx.font = "50px sans";
       ctx.fillStyle = "#006400";
       ctx.textAlign = "center";
