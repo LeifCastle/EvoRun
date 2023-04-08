@@ -33,9 +33,11 @@ const shieldMultiplier = 10; //Score is increased by number of shields gained * 
 let distanceMultiplier = 0.01; //Score is increased by number of pixels the player has moved * this multiplier
 
 //Important
-const speed = 6; //***ToDO:  set this to a linear or polynomial increment over game progress/time
+let speed = 3; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
-const difficulty = 1; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
+let difficulty = 0; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
+let progress = 0;
+let currentDifficulty = 0;
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
@@ -300,6 +302,8 @@ function initializeGame() {
 //====== Game Functions ======\\
 //GameLoop
 function gameLoop() {
+  handleDifficulty();
+  console.log(speed);
   //== Path & Game Rendering
   path.move(); //Move the path
   gameRerendering(); //Rerender class instances if neccesary
@@ -339,6 +343,26 @@ function gameLoop() {
   }
   if (restarted === true) {
     endGame(true);
+  }
+}
+
+function handleDifficulty() {
+  if (progress > currentDifficulty) {
+    switch (true) {
+      case progress <= 5:
+        speed += 0.5;
+        break;
+      case progress > 5 && progress < 15:
+        speed += 0.2;
+        break;
+      case progress >= 15 && progress < 40:
+        speed += 0.1;
+        break;
+      case progress >= 40:
+        speed += 0.5;
+        break;
+    }
+    currentDifficulty = progress;
   }
 }
 
@@ -436,12 +460,11 @@ function newShieldCount() {
       //Get a random number greater than the lowest possible number
       const rndRequired = randomIntFromInterval(
         lowestPossibility,
-        lowestPossibility + 1 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
+        lowestPossibility + 3 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
       );
 
       result.push(`a${rndRequired}`);
       extraShields = extraShields - 3 + rndRequired;
-
       //console.log("Attempt: ", rndRequired, "Extra Shields: ", extraShields);
     } else {
       const operatorPossibilities = [
@@ -488,6 +511,7 @@ function manageLava() {
   ) {
     player.number -= lavaDamage;
     lava.damaged = true;
+    progress++;
   }
 }
 
