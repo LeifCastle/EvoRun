@@ -39,7 +39,6 @@ let distanceMultiplier = 0.01; //Score is increased by number of pixels the play
 //Important
 let speed = 3; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
-let difficulty = 0; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
 let progress = 0; //How many lava flows the player has crossed
 let currentProgress = 0; //Current progress before player has crossed current lava flow
 
@@ -176,7 +175,6 @@ class Player {
       swidth,
       sheight
     );
-    console.log(player.number);
   }
   move(e) {
     if (e.key === "w" && lane > -1 && !blocked) {
@@ -298,6 +296,9 @@ class Barrier {
 function initializeGame() {
   //Initialize entities to render
   restarted = false;
+  speed = 3;
+  progress = 0;
+  currentProgress = 0;
   playButton.setAttribute("hidden", "hidden");
   stats.setAttribute("hidden", "hidden");
   statsContainer.setAttribute("hidden", "hidden");
@@ -357,7 +358,6 @@ function gameLoop() {
   shield3.render();
   lava.render();
   player.render();
-
   //GameOver
   if (!gameEnd) {
     window.requestAnimationFrame(gameLoop);
@@ -602,7 +602,6 @@ function showStats() {
 function toggleGamePlay() {
   instructions.toggleAttribute("hidden");
   hidden = !hidden;
-  console.log(hidden);
   if (hidden) {
     gamePlay.textContent = "How to play";
   } else {
