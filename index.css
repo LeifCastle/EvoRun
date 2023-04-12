@@ -104,3 +104,38 @@ main {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
+#stats {
+  width: 125px;
+  height: 32px;
+  background: var(--stat-background);
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  position: absolute;
+  bottom: 200px;
+  right: 392.5px;
+  border-radius: 5px;
+  border: none;
+}
+
+#statsContainer {
+  position: absolute;
+  top: 75px;
+  left: 312.5px;
+  width: 275px;
+  height: 220px;
+  border-radius: 5px;
+  list-style: none;
+  text-align: left;
+}
+.endGameStat {
+  transition: all 1s ease-in;
+  width: 0px;
+  height: 32px;
+  font-size: 25px;
+  font-weight: bold;
+  margin-top: 10px;
+  background: var(--stat-background);
+  border-radius: 5px;
+  overflow: hidden;
+}

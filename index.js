@@ -4,6 +4,8 @@ const playButton = document.querySelector("#playButton");
 const restart = document.querySelector("#restart");
 const scoreHtml = document.querySelector("#score");
 const highScoreHtml = document.querySelector("#highScore");
+const stats = document.querySelector("#stats");
+const statsContainer = document.querySelector("#statsContainer");
 
 //Images
 const pathImage = document.querySelector("#path");
@@ -36,8 +38,8 @@ let distanceMultiplier = 0.01; //Score is increased by number of pixels the play
 let speed = 3; //***ToDO:  set this to a linear or polynomial increment over game progress/time
 let lavaDamage = 3; //How much damage the player take traversing a lava flow
 let difficulty = 0; //Make this change the amount of + other posibilities and maybe incrase sucesfull path random +
-let progress = 0;
-let currentDifficulty = 0;
+let progress = 0; //How many lava flows the player has crossed
+let currentProgress = 0; //Current progress before player has crossed current lava flow
 
 //Other
 let lane = -1; //The player initially starts in the upper lane
@@ -49,7 +51,7 @@ let gameEnd; //Tracks if the game has ended
 let peoplePossibilities = []; //The actual amount of shields to give or take
 let extraShields = 0; //How many extra shields the player has in comparison to how many they need to cross the next lava flow
 let restarted = false; //If the player clicked restart
-let sy = 0; //y coordinate to start clipping shield sprites
+let sy = -112; //y coordinate to start clipping shield sprites
 let psx = 0; //x coordinate to start rendering player sprites
 let bpsy = 0;
 let rendered = 0; //he number of shields the player has rendered (but not neccesarily supposed to have)
@@ -66,6 +68,7 @@ window.addEventListener("DOMContentLoaded", function () {
   playButton.addEventListener("click", initializeGame);
   document.addEventListener("keydown", (e) => player.move(e));
   restart.addEventListener("click", () => (restarted = true)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
+  stats.addEventListener("click", () => showStats());
 });
 
 //====== Renderable Classes ======\\
@@ -95,6 +98,8 @@ class Player {
     this.number = number;
     this.alive = true;
     this.burned = false;
+    this.shieldsGained = 0; //Total shields gained
+    this.shieldsLost = 0; //Total shields lost
   }
   render() {
     //If player is in the lava render burning player sprites
@@ -167,6 +172,7 @@ class Player {
       swidth,
       sheight
     );
+    console.log(player.number);
   }
   move(e) {
     if (e.key === "w" && lane > -1 && !blocked) {
@@ -250,9 +256,15 @@ class Event {
       case "a":
         player.number = player.number + number;
         score += number * shieldMultiplier;
+        if (number < 0) {
+          player.shieldsLost += Math.abs(number);
+        } else {
+          player.shieldsGained += number;
+        }
         break;
       case "b":
         player.number = player.number * number;
+        player.shieldsGained += player.number * number;
         break;
       case "c":
         player.number = player.number / number;
@@ -283,6 +295,11 @@ function initializeGame() {
   //Initialize entities to render
   restarted = false;
   playButton.setAttribute("hidden", "hidden");
+  stats.setAttribute("hidden", "hidden");
+  statsContainer.setAttribute("hidden", "hidden");
+  while (statsContainer.firstChild) {
+    statsContainer.removeChild(statsContainer.firstChild);
+  }
   restart.removeAttribute("hidden");
   path = new Path(pathImage, 0, 0);
   nextPath = new Path(pathImage, path.x + path.width, 0);
@@ -295,6 +312,7 @@ function initializeGame() {
   shield3 = new Event("card", initialCardStart, 330, text[2], shieldImage);
   lava = new Event("damage", initialCardStart + 300, 20);
   gameEnd = false;
+  score = 0;
   //Run gameLoop at player's device's max frames/second
   window.requestAnimationFrame(gameLoop);
 }
@@ -303,7 +321,6 @@ function initializeGame() {
 //GameLoop
 function gameLoop() {
   handleDifficulty();
-  console.log(speed);
   //== Path & Game Rendering
   path.move(); //Move the path
   gameRerendering(); //Rerender class instances if neccesary
@@ -347,7 +364,7 @@ function gameLoop() {
 }
 
 function handleDifficulty() {
-  if (progress > currentDifficulty) {
+  if (progress > currentProgress) {
     switch (true) {
       case progress <= 5:
         speed += 0.5;
@@ -362,7 +379,7 @@ function handleDifficulty() {
         speed += 0.5;
         break;
     }
-    currentDifficulty = progress;
+    currentProgress = progress;
   }
 }
 
@@ -536,13 +553,41 @@ function endGame(restartClicked) {
   ctx.clearRect(0, 0, game.width, game.height);
   //If player is not restarting
   if (!restartClicked) {
-    ctx.font = "50px sans";
-    ctx.fillStyle = "#006400";
+    ctx.font = "60px sans";
+    ctx.fillStyle = "#000000";
     ctx.textAlign = "center";
     ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
+    playButton.style.top = "370px";
+    stats.removeAttribute("hidden");
+  } else {
+    playButton.style.top = "185px";
   }
   restart.setAttribute("hidden", "hidden");
   playButton.removeAttribute("hidden");
   playButton.textContent = "Play Again";
-  score = 0; //reset the score
+}
+
+function showStats() {
+  let delay = 0;
+  statsContainer.removeAttribute("hidden");
+  ctx.clearRect(0, 0, game.width, game.height);
+  stats.setAttribute("hidden", "hidden");
+  const statsArray = {
+    High_Score: Math.floor(highScore),
+    Score: Math.floor(score),
+    Lava_Crossed: progress,
+    Shields_Gained: player.shieldsGained,
+    Shields_Lost: player.shieldsLost,
+  };
+  for (let stat in statsArray) {
+    const li = document.createElement("li");
+    li.setAttribute("class", "endGameStat");
+    li.textContent = `${stat.replace("_", " ")}: ${statsArray[stat]}`;
+    statsContainer.append(li);
+    setTimeout(() => {
+      li.style.paddingLeft - "10px";
+      li.style.width = "275px";
+    }, delay);
+    delay += 500;
+  }
 }
