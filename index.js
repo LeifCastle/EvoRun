@@ -6,6 +6,8 @@ const scoreHtml = document.querySelector("#score");
 const highScoreHtml = document.querySelector("#highScore");
 const stats = document.querySelector("#stats");
 const statsContainer = document.querySelector("#statsContainer");
+const gamePlay = document.querySelector("#gamePlay");
+const instructions = document.querySelector("#instructions");
 
 //Images
 const pathImage = document.querySelector("#path");
@@ -57,6 +59,7 @@ let bpsy = 0;
 let rendered = 0; //he number of shields the player has rendered (but not neccesarily supposed to have)
 let playerSpriteRun = true;
 let bplayerSpriteRun = true;
+let hidden = true;
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -69,6 +72,7 @@ window.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("keydown", (e) => player.move(e));
   restart.addEventListener("click", () => (restarted = true)); //If player clicks restart, end the game (player.number is -100 shields so that game over won't show up)
   stats.addEventListener("click", () => showStats());
+  gamePlay.addEventListener("click", () => toggleGamePlay());
 });
 
 //====== Renderable Classes ======\\
@@ -297,6 +301,7 @@ function initializeGame() {
   playButton.setAttribute("hidden", "hidden");
   stats.setAttribute("hidden", "hidden");
   statsContainer.setAttribute("hidden", "hidden");
+  gamePlay.setAttribute("hidden", "hidden");
   while (statsContainer.firstChild) {
     statsContainer.removeChild(statsContainer.firstChild);
   }
@@ -430,6 +435,7 @@ function gameOverCheck() {
     }, 2000);
   }
 }
+
 function burn() {
   player.render();
   if (player.burned === false) {
@@ -564,6 +570,7 @@ function endGame(restartClicked) {
   }
   restart.setAttribute("hidden", "hidden");
   playButton.removeAttribute("hidden");
+  gamePlay.removeAttribute("hidden");
   playButton.textContent = "Play Again";
 }
 
@@ -589,5 +596,16 @@ function showStats() {
       li.style.width = "275px";
     }, delay);
     delay += 500;
+  }
+}
+
+function toggleGamePlay() {
+  instructions.toggleAttribute("hidden");
+  hidden = !hidden;
+  console.log(hidden);
+  if (hidden) {
+    gamePlay.textContent = "How to play";
+  } else {
+    gamePlay.textContent = "Hide Instructions";
   }
 }

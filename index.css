@@ -139,3 +139,31 @@ main {
   border-radius: 5px;
   overflow: hidden;
 }
+
+#gamePlay {
+  background: var(--stat-background);
+  border: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 900px;
+  height: 35px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#instructions {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  width: 880px;
+  height: 415px;
+  background-color: grey;
+  text-align: left;
+  font-size: 18px;
+  padding-inline: 10px;
+}
+.instructionTitle {
+  font-size: 22px;
+  font-weight: bold;
+}
