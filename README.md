@@ -46,6 +46,26 @@ if (i === randOrder) {
 }
 ```
 
+Each class roughly follows the same layout with render and move methods. Once the player has passed a current instance, the instance is reassigned as a new class and moved to the right of the canvas. FOr example, the barrier class prevents the player from selecting multiple shields. The player and event classes are more complicated.
+
+```javascript
+class Barrier {
+  constructor(image, x, y) {
+    this.image = image;
+    this.x = x;
+    this.y = y;
+    this.width = 210;
+  }
+  render() {
+    ctx.drawImage(this.image, this.x - 30, this.y);
+    ctx.drawImage(this.image, this.x - 30, this.y);
+  }
+  move() {
+    this.x -= speed;
+  }
+}
+```
+
 This is how the player's stats are rendered.
 
 ```Javascript
@@ -92,3 +112,4 @@ describe("Player Class", function () {
 - Make negative shields red and positive shields blue
 - Make events closer together (rendering two or more of the same events at once on the cavas) so difficutly is the same but speed can be reduced allowing the player to read shield options easier
 - Reduce code by creating a sprite class
+- Use media queries to render game correctly on any desktop
