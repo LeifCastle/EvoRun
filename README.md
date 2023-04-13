@@ -30,43 +30,23 @@ New shields are rendered every time the player selects a shield and crosses the 
 ```javascript
 let randOrder = Math.floor(Math.random() * 3); //Puts the succesfull path in a random lane
 if (i === randOrder) {
-  const lowestPossibility = 4 - extraShields; //The lowest number a succesfull path could be is 4 minus any consecutive extra shields
-  //Get a random number up to three greater than the lowest possible number
+  const lowestPossibility = 4 - extraShields; //The lowest number a succesfull path could be is 4 minues any extra shields
+  //Get a random number greater than the lowest possible number
   const rndRequired = randomIntFromInterval(
     lowestPossibility,
     lowestPossibility + 3
   );
-  result.push(`a${rndRequired}`);
+  if (rndRequired >= 0) {
+    operator = "+";
+  } else {
+    operator = "-";
+  }
+  result.push(`${operator} ${Math.abs(rndRequired)}`);
   extraShields = extraShields - 3 + rndRequired;
 }
 ```
 
-The event class is responsible for lava flows and shield options. The render() method that can be called on event instances (assuming the event is a shield option) takes the raw chosen number input, turns it into text based on its math operator, and then draws the shield with it's appropriate text.
-
-```javascript
-  render() {
-    if (this.event === "card" && this.show === true) {
-      ctx.drawImage(this.shieldImage, this.x, this.y);
-      const text = this.cardText.split("");
-      const operator = text.splice(0, 1).toString();
-      const number = text;
-      switch (operator) {
-        case "a":
-          if (number.length > 1) {
-            displayText = `${number[0]} ${number[1]}`;
-          } else {
-            displayText = `+ ${number[0]}`;
-          }
-          break;
-        case "b":
-          displayText = `x ${number[0]}`;
-          break;
-      }
-    }
-  }
-```
-
-Finally, this is how the player's stats are rendered.
+This is how the player's stats are rendered.
 
 ```Javascript
 for (let stat in statsArray) {
@@ -105,3 +85,10 @@ describe("Player Class", function () {
 
 **Design 2**
 ![image info](./READMEimages/Design%202.png)
+
+## Future Mods
+
+- Add difficulty by widening lava fields as player progresses
+- Make negative shields red and positive shields blue
+- Make events closer together (rendering two or more of the same events at once on the cavas) so difficutly is the same but speed can be reduced allowing the player to read shield options easier
+- Reduce code by creating a sprite class

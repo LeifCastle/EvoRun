@@ -347,26 +347,6 @@ function gameLoop() {
   }
 }
 
-function handleDifficulty() {
-  if (progress > currentProgress) {
-    switch (true) {
-      case progress <= 5:
-        speed += 0.5;
-        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
-        break;
-      case progress > 5 && progress < 15:
-        speed += 0.2;
-        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
-        break;
-      case progress >= 15 && progress < 40:
-        speed += 0.1;
-        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
-        break;
-    }
-    currentProgress = progress;
-  }
-}
-
 //Checks
 function checkShieldSelected() {
   const shieldArray = [shield1, shield2, shield3];
@@ -415,12 +395,59 @@ function gameOverCheck() {
   }
 }
 
+//End Game
+function endGame(restartClicked) {
+  gameEnd = true;
+  ctx.clearRect(0, 0, game.width, game.height);
+  //If player is not restarting
+  if (!restartClicked) {
+    ctx.font = "60px sans";
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
+    playButton.style.top = "370px";
+    stats.removeAttribute("hidden");
+  } else {
+    playButton.style.top = "185px";
+  }
+  restart.setAttribute("hidden", "hidden");
+  playButton.removeAttribute("hidden");
+  gamePlay.removeAttribute("hidden");
+  playButton.textContent = "Play Again";
+}
+
+function showStats() {
+  let delay = 0;
+  statsContainer.removeAttribute("hidden");
+  ctx.clearRect(0, 0, game.width, game.height);
+  stats.setAttribute("hidden", "hidden");
+  const statsArray = {
+    High_Score: Math.floor(highScore),
+    Score: Math.floor(score),
+    Lava_Crossed: progress,
+    Shields_Gained: player.shieldsGained,
+    Shields_Lost: player.shieldsLost,
+  };
+  for (let stat in statsArray) {
+    const li = document.createElement("li");
+    li.setAttribute("class", "endGameStat");
+    li.textContent = `${stat.replace("_", " ")}: ${statsArray[stat]}`;
+    statsContainer.append(li);
+    setTimeout(() => {
+      li.style.paddingLeft = "10px";
+      li.style.width = "275px";
+    }, delay);
+    delay += 500;
+  }
+}
+
 function burn() {
   player.render();
   if (player.burned === false) {
     window.requestAnimationFrame(burn);
   }
 }
+
 //Other
 function gameRerendering() {
   //Create new path if neccesary
@@ -520,53 +547,23 @@ function updateScore() {
   highScoreHtml.textContent = `High Score: ${Math.floor(highScore)}`;
 }
 
-function randomIntFromInterval(min, max) {
-  // min and max included
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-function endGame(restartClicked) {
-  gameEnd = true;
-  ctx.clearRect(0, 0, game.width, game.height);
-  //If player is not restarting
-  if (!restartClicked) {
-    ctx.font = "60px sans";
-    ctx.fillStyle = "#000000";
-    ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", game.width / 2, game.height / 2 - 50);
-    playButton.style.top = "370px";
-    stats.removeAttribute("hidden");
-  } else {
-    playButton.style.top = "185px";
-  }
-  restart.setAttribute("hidden", "hidden");
-  playButton.removeAttribute("hidden");
-  gamePlay.removeAttribute("hidden");
-  playButton.textContent = "Play Again";
-}
-
-function showStats() {
-  let delay = 0;
-  statsContainer.removeAttribute("hidden");
-  ctx.clearRect(0, 0, game.width, game.height);
-  stats.setAttribute("hidden", "hidden");
-  const statsArray = {
-    High_Score: Math.floor(highScore),
-    Score: Math.floor(score),
-    Lava_Crossed: progress,
-    Shields_Gained: player.shieldsGained,
-    Shields_Lost: player.shieldsLost,
-  };
-  for (let stat in statsArray) {
-    const li = document.createElement("li");
-    li.setAttribute("class", "endGameStat");
-    li.textContent = `${stat.replace("_", " ")}: ${statsArray[stat]}`;
-    statsContainer.append(li);
-    setTimeout(() => {
-      li.style.paddingLeft = "10px";
-      li.style.width = "275px";
-    }, delay);
-    delay += 500;
+function handleDifficulty() {
+  if (progress > currentProgress) {
+    switch (true) {
+      case progress <= 5:
+        speed += 0.5;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
+        break;
+      case progress > 5 && progress < 15:
+        speed += 0.2;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
+        break;
+      case progress >= 15 && progress < 40:
+        speed += 0.1;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
+        break;
+    }
+    currentProgress = progress;
   }
 }
 
@@ -578,4 +575,9 @@ function toggleGamePlay() {
   } else {
     gamePlay.textContent = "Hide Instructions";
   }
+}
+
+function randomIntFromInterval(min, max) {
+  // min and max included
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
