@@ -33,8 +33,8 @@ let lava;
 //Scoring
 let score = 0;
 let highScore = 0;
-const shieldMultiplier = 10; //Score is increased by number of shields gained * this multiplier (loosing shields does not decrease a player's score)
-let distanceMultiplier = 0.01; //Score is increased by number of pixels the player has moved * this multiplier
+const shieldMultiplier = 100; //Score is increased by number of shields gained * this multiplier (loosing shields does not decrease a player's score)
+let distanceMultiplier = 0.1; //Score is increased by number of pixels the player has moved * this multiplier
 
 //Important
 let speed = 3; //***ToDO:  set this to a linear or polynomial increment over game progress/time
@@ -58,7 +58,9 @@ let bpsy = 0;
 let rendered = 0; //he number of shields the player has rendered (but not neccesarily supposed to have)
 let playerSpriteRun = true;
 let bplayerSpriteRun = true;
-let hidden = true;
+let hidden = true; //If instructions are hidden
+
+const operatorPossibilities = ["x", "-", "-", "-", "-", "+", "+", "+", "+"]; //Shield options operators
 
 //====== Initialize Canvas ======\\
 const ctx = game.getContext("2d");
@@ -217,24 +219,8 @@ class Event {
       ctx.font = "20px arial";
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
-      let displayText = "";
-      const text = this.cardText.split("");
-      const operator = text.splice(0, 1).toString();
-      const number = text;
-      switch (operator) {
-        case "a":
-          if (number.length > 1) {
-            displayText = `${number[0]} ${number[1]}`;
-          } else {
-            displayText = `+ ${number[0]}`;
-          }
-          break;
-        case "b":
-          displayText = `x ${number[0]}`;
-          break;
-      }
       ctx.fillText(
-        displayText,
+        this.cardText,
         this.x + this.shieldImage.width / 2,
         this.y + this.shieldImage.height / 2 + 7
       );
@@ -250,23 +236,19 @@ class Event {
     const action = this.cardText.split("");
     const operator = action.splice(0, 1).toString();
     const number = parseInt(action.join(""));
-    //console.log("operator: ", operator, "number: ", number);
     switch (operator) {
-      case "a":
+      case "+":
         player.number = player.number + number;
         score += number * shieldMultiplier;
-        if (number < 0) {
-          player.shieldsLost += Math.abs(number);
-        } else {
-          player.shieldsGained += number;
-        }
+        player.shieldsGained += number;
         break;
-      case "b":
+      case "-":
+        player.number = player.number - number;
+        player.shieldsLost += Math.abs(number);
+        break;
+      case "x":
         player.number = player.number * number;
         player.shieldsGained += player.number * number;
-        break;
-      case "c":
-        player.number = player.number / number;
         break;
     }
     shieldSelected = false; //resets event action and prevents this class method from being called repeatedly
@@ -370,15 +352,15 @@ function handleDifficulty() {
     switch (true) {
       case progress <= 5:
         speed += 0.5;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
         break;
       case progress > 5 && progress < 15:
         speed += 0.2;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
         break;
       case progress >= 15 && progress < 40:
         speed += 0.1;
-        break;
-      case progress >= 40:
-        speed += 0.5;
+        operatorPossibilities.slice(0, operatorPossibilities.length - 1); //remove a + shield from possible shield options
         break;
     }
     currentProgress = progress;
@@ -473,6 +455,7 @@ function gameRerendering() {
 function newShieldCount() {
   let result = [];
   let shieldPossibilities = [];
+  let operator = "";
   let randOrder = Math.floor(Math.random() * 3); //Puts the succesfull path in a random lane
   for (i = 0; i < 3; i++) {
     if (i === randOrder) {
@@ -480,39 +463,34 @@ function newShieldCount() {
       //Get a random number greater than the lowest possible number
       const rndRequired = randomIntFromInterval(
         lowestPossibility,
-        lowestPossibility + 3 //how much bigger can the lowest number be (TODO: make this a factor in difficulty)
+        lowestPossibility + 3
       );
-
-      result.push(`a${rndRequired}`);
+      if (rndRequired >= 0) {
+        operator = "+";
+      } else {
+        operator = "-";
+      }
+      result.push(`${operator} ${Math.abs(rndRequired)}`);
       extraShields = extraShields - 3 + rndRequired;
-      //console.log("Attempt: ", rndRequired, "Extra Shields: ", extraShields);
     } else {
-      const operatorPossibilities = [
-        "a",
-        "a",
-        "a",
-        "a",
-        "a",
-        "a",
-        "a",
-        "a",
-        "b",
-      ]; //A is addition and subtraction, B is multiplication, C = division
       const randOperator = Math.floor(
         Math.random() * operatorPossibilities.length
       );
       const operatorSelection = operatorPossibilities[randOperator];
       switch (operatorSelection) {
-        case "a":
-          shieldPossibilities = [-1, -2, -3, -4, -5, -6, 0, 1, 2, 3, 4, 5, 6];
+        case "+":
+          shieldPossibilities = [0, 1, 2, 3, 4, 5, 6];
           break;
-        case "b":
-          shieldPossibilities = [1, 2, 2, 2, 2];
+        case "-":
+          shieldPossibilities = [-1, -2, -3, -4, -5, -6];
+          break;
+        case "x":
+          shieldPossibilities = [1, 2, 2, 2];
           break;
       }
       const randShield = Math.floor(Math.random() * shieldPossibilities.length);
       const shieldSelection = shieldPossibilities[randShield];
-      result.push(`${operatorSelection}${shieldSelection}`); //Push the math operator and the number of shields
+      result.push(`${operatorSelection} ${Math.abs(shieldSelection)}`); //Push the math operator and the number of shields
     }
   }
   return result;
@@ -533,7 +511,7 @@ function manageLava() {
 
 function updateScore() {
   score += speed * distanceMultiplier; //increase score
-  distanceMultiplier += 0.01;
+  distanceMultiplier += 0.000001;
 
   if (score > highScore) {
     highScore = score;
