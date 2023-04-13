@@ -232,9 +232,6 @@ class Event {
         case "b":
           displayText = `x ${number[0]}`;
           break;
-        case "c":
-          displayText = `/ ${number[0]}`;
-          break;
       }
       ctx.fillText(
         displayText,
@@ -500,7 +497,6 @@ function newShieldCount() {
         "a",
         "a",
         "b",
-        "c",
       ]; //A is addition and subtraction, B is multiplication, C = division
       const randOperator = Math.floor(
         Math.random() * operatorPossibilities.length
@@ -511,9 +507,6 @@ function newShieldCount() {
           shieldPossibilities = [-1, -2, -3, -4, -5, -6, 0, 1, 2, 3, 4, 5, 6];
           break;
         case "b":
-          shieldPossibilities = [1, 2, 2, 2, 2];
-          break;
-        case "c":
           shieldPossibilities = [1, 2, 2, 2, 2];
           break;
       }
@@ -592,7 +585,7 @@ function showStats() {
     li.textContent = `${stat.replace("_", " ")}: ${statsArray[stat]}`;
     statsContainer.append(li);
     setTimeout(() => {
-      li.style.paddingLeft - "10px";
+      li.style.paddingLeft = "10px";
       li.style.width = "275px";
     }, delay);
     delay += 500;
